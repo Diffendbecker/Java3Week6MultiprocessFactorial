@@ -2,49 +2,55 @@ import java.util.Arrays;
 
 public class MergeSort {
 
-    public static int[] parallelMergeSort(int[] a) {
-        int cores = 8;
-        return parallelMergeSort(a, cores);
+    public static int[] parallelMergeSort(int[] a) throws InterruptedException {
+
+        int middle_point = a.length/2;
+        int[] subArr1 = new int[middle_point];
+        int[] subArr2 = new int[a.length - middle_point];
+        System.arraycopy(a, 0, subArr1, 0, middle_point);
+        System.arraycopy(a, middle_point, subArr2, 0, a.length - middle_point);
+
+        Sorter runner1 = new Sorter(subArr1);
+        Sorter runner2 = new Sorter(subArr2);
+        runner1.start();
+        runner2.start();
+        runner1.join();
+        runner2.join();
+        return merge (runner1.getInternal(), runner2.getInternal());
     }
 
-    public static int[] parallelMergeSort(int[] data, int threadCount) {
-        if (threadCount <= 1) {
-            return data;
-        } else if (data.length >= 2) {
-            int middle_point = data.length/2;
-            int[] left  = Arrays.copyOfRange(data, 0, middle_point);
-            int[] right = Arrays.copyOfRange(data, middle_point, data.length);
-
-            Thread lThread = new Thread(new Sorter(left,  threadCount / 2));
-            Thread rThread = new Thread(new Sorter(right, threadCount / 2));
-            lThread.start();
-            rThread.start();
-
-            try {
-                lThread.join();
-                rThread.join();
-            } catch (InterruptedException ie) {}
-
-            data = merge(left, right, data);
-        }
-        return data;
-    }
-
-    public static int[] merge(int[] left, int[] right, int[] a) {
-        int i1 = 0;
-        int i2 = 0;
-        for (int i = 0; i < a.length; i++) {
-            if (i2 >= right.length || (i1 < left.length && left[i1] < right[i2])) {
-                a[i] = left[i1];
-                i1++;
+    public static int[] merge(int[] a, int[] b) {
+        int[] result = new int[a.length + b.length];
+        int i = 0;
+        int j = 0;
+        int r = 0;
+        while (i < a.length && j < b.length) {
+            if (a[i] <= b[j]) {
+                result[r] = a[i];
+                i++;
+                r++;
             } else {
-                a[i] = right[i2];
-                i2++;
+                result[r] = b[j];
+                j++;
+                r++;
+            }
+            if (i == a.length) {
+                while (j < b.length) {
+                    result[r] = b[j];
+                    r++;
+                    j++;
+                }
+            }
+            if (j == b.length) {
+                while (i < a.length) {
+                    result[r] = a[i];
+                    r++;
+                    i++;
+                }
             }
         }
-        return a;
+        return result;
     }
-
 
     public static int[] mergeSort(int ...data){
         int merged[] = new int[data.length];
